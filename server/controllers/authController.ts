@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { sessionController } from "./sessionController";
 
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key";
 
@@ -17,6 +18,7 @@ const RegisterSchema = z.object({
 const LoginSchema = z.object({
   email: z.string().email(),
   password: z.string(),
+  userAgent: z.string().optional(),
 });
 
 export const authController = {
@@ -63,27 +65,48 @@ export const authController = {
   // --- LOGIN ---
   login: async (req: Request, res: Response) => {
     try {
-      const { email, password } = LoginSchema.parse(req.body);
+      // 1. Validate inputs (Make sure LoginSchema includes 'userAgent: z.string().optional()')
+      const {
+        email,
+        password,
+        userAgent: bodyUserAgent,
+      } = LoginSchema.parse(req.body);
 
-      // 1. Find user
+      // 2. Find user
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // 2. Verify password
+      // 3. Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid)
         return res.status(401).json({ error: "Invalid password" });
 
-      // 3. Generate JWT
+      // --- SESSION LOGGING START ---
+      try {
+        // Use the bodyUserAgent if provided, otherwise fallback to headers
+        const finalUA = bodyUserAgent || req.headers["user-agent"] || "";
+
+        // Override the header for the createSession method or pass finalUA directly
+        await sessionController.createSession(user.id, req, finalUA);
+      } catch (sessionError) {
+        console.error(
+          "Session log failed, but continuing login:",
+          sessionError,
+        );
+        // We don't block the login if the access log fails
+      }
+      // --- SESSION LOGGING END ---
+
+      // 4. Generate JWT
       const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
         expiresIn: "7d",
       });
 
-      // 4. Send token in HttpOnly Cookie (Secure)
+      // 5. Send token in HttpOnly Cookie
       res.cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       res.json({

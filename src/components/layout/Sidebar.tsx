@@ -1,112 +1,163 @@
-import { useEffect, useState } from "react";
-import { api } from "../../lib/api";
-import { Stats } from "../../../share-types/types";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router";
-import { User, Activity, FileText } from "lucide-react";
-import { getPosts, getProfiles } from "../../lib/localStorage";
+import { User, Activity, FileText, Cpu } from "lucide-react";
+import { useAuth } from "../../app/contexts/AuthContext";
+
+interface Contributor {
+  id: string;
+  username: string;
+  postCount: number;
+}
+
+interface UserData {
+  username: string;
+  reputationScore: number;
+  specialization: string | null;
+}
+
+const API_BASE = "http://localhost:5000/api";
 
 export function Sidebar() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [topContributors, setTopContributors] = useState<any[]>([]);
+  const [topContributors, setTopContributors] = useState<Contributor[]>([]);
+  const [userProfile, setUserProfile] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [aiMessage, setAiMessage] = useState("");
+  const { token } = useAuth(); // Getting token from Context
+
+  // We use useCallback to keep the function stable
+  const generateAiAdvice = useCallback((user: UserData) => {
+    const messages = [
+      `Welcome back, ${user.username}. Your reputation is currently ${user.reputationScore}. Keep contributing to reach the next tier.`,
+      `Analyzing ${user.specialization || "General"} trends... I suggest reviewing the latest Database Optimization threads.`,
+      `System indicates ${user.reputationScore > 50 ? "High" : "Standard"} trust level. Your recent posts are performing well.`,
+      `Recommendation: Update your bio to include ${user.specialization || "new skills"} to increase profile visibility.`,
+    ];
+    setAiMessage(messages[Math.floor(Math.random() * messages.length)]);
+  }, []);
 
   useEffect(() => {
-    api.getStats().then(setStats).catch(console.error);
+    const loadSidebarData = async () => {
+      try {
+        setIsLoading(true);
 
-    // Calculate top contributors based on post count
-    const calculateTopContributors = () => {
-      const posts = getPosts().filter((p: any) => p.status === "published");
-      const users = getProfiles();
+        // Prioritize the token from Context, fallback to LocalStorage
+        const activeToken = token || localStorage.getItem("token");
 
-      // Count posts per user
-      const postCounts = posts.reduce((acc: any, post: any) => {
-        acc[post.author_id] = (acc[post.author_id] || 0) + 1;
-        return acc;
-      }, {});
+        // Prepare fetch promises
+        const fetchContributors = fetch(`${API_BASE}/system/contributors`);
 
-      // Create contributor list with post counts
-      const contributors = users
-        .map((user: any) => ({
-          ...user,
-          postCount: postCounts[user.id] || 0,
-          // Calculate total likes across all their posts
-          totalLikes: posts
-            .filter((p: any) => p.author_id === user.id)
-            .reduce((sum: number, p: any) => sum + (p.likes || 0), 0),
-        }))
-        .filter((user: any) => user.postCount > 0) // Only show users with posts
-        .sort((a: any, b: any) => {
-          // Sort by post count first, then by total likes
-          if (b.postCount !== a.postCount) {
-            return b.postCount - a.postCount;
-          }
-          return b.totalLikes - a.totalLikes;
-        })
-        .slice(0, 5); // Top 5 contributors
+        // Only fetch profile if a token exists
+        const fetchProfile = activeToken
+          ? fetch(`${API_BASE}/profile/me`, {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${activeToken}`,
+                "Content-Type": "application/json",
+              },
+            })
+          : Promise.resolve(null);
 
-      setTopContributors(contributors);
+        const [contributorsRes, profileRes] = await Promise.all([
+          fetchContributors,
+          fetchProfile,
+        ]);
+
+        // Handle Contributors
+        if (contributorsRes.ok) {
+          const contributorsData = await contributorsRes.json();
+          setTopContributors(contributorsData);
+        }
+
+        // Handle Profile
+        if (profileRes && profileRes.ok) {
+          const profileData = await profileRes.json();
+          setUserProfile(profileData);
+          generateAiAdvice(profileData);
+        } else if (profileRes?.status === 401) {
+          console.error("AI_ADVISOR: Session expired or invalid.");
+        }
+      } catch (error) {
+        console.error("AI_ADVISOR_LINK_FAILED:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    calculateTopContributors();
-
-    // Refresh contributors when storage changes
-    const handleStorageChange = () => {
-      calculateTopContributors();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("auth-change", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("auth-change", handleStorageChange);
-    };
-  }, []);
+    loadSidebarData();
+  }, [token, generateAiAdvice]); // Re-run if token changes
 
   return (
     <aside className="w-64 space-y-6">
-      {/* System Statistics */}
-      <div className="retro-border-outset p-4">
-        <h3 className="font-bold text-[#000080] border-b border-gray-400 mb-2 flex items-center gap-2">
-          <Activity size={16} />
-          SYSTEM_STATS.EXE
+      {/* AI_COPILOT_ADVISOR.EXE */}
+      <div className="retro-border-outset p-4 bg-[#c0c0c0]">
+        <h3 className="font-bold text-[#800080] border-b border-gray-400 mb-2 flex items-center gap-2 text-sm uppercase">
+          <Cpu size={14} />
+          AI_COPILOT_ADVISOR.EXE
         </h3>
-        {stats ? (
-          <div className="font-mono text-sm space-y-2">
-            <div className="flex justify-between">
-              <span>USERS:</span>
-              <span className="text-[#008000]">{stats.users}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>POSTS:</span>
-              <span className="text-[#008000]">{stats.posts}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>STORAGE:</span>
-              <span className="text-[#008000]">{stats.kb_stored} KB</span>
-            </div>
+
+        <div className="bg-[#000040] text-[#00ff00] p-3 border-2 border-gray-600 shadow-inner font-mono text-[11px] min-h-[100px] relative overflow-hidden">
+          {/* CRT Scanline Effect */}
+          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_2px,3px_100%] opacity-30"></div>
+
+          <div className="relative z-10">
+            <span className="opacity-50 text-[9px] block border-b border-[#00ff00]/30 mb-2 animate-pulse">
+              {">"} INCOMING_STREAM_LOADED...
+            </span>
+
+            {isLoading ? (
+              <span className="animate-pulse">BOOTING_NEURAL_LINK...</span>
+            ) : userProfile ? (
+              <p className="leading-relaxed">
+                {aiMessage || "Processing user context..."}
+              </p>
+            ) : (
+              <p className="text-amber-400 opacity-80 italic">
+                {">"} AUTH_REQUIRED: Please log in to enable AI Advisor.
+              </p>
+            )}
           </div>
-        ) : (
-          <div className="font-mono text-xs animate-pulse">CALCULATING...</div>
-        )}
+        </div>
+
+        <div className="flex justify-between items-center mt-3 px-1">
+          <div className="flex flex-col">
+            <span className="text-gray-600 text-[9px] uppercase font-bold">
+              Model: GPT-v3.0_RETRO
+            </span>
+            <span className="text-[8px] text-gray-500">ENCRYPTION: ACTIVE</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[8px] text-gray-600 font-bold uppercase">
+              Status
+            </span>
+            <div
+              className={`w-3 h-3 rounded-full shadow-[0_0_8px] ${
+                userProfile
+                  ? "bg-[#00ff00] shadow-[#00ff00]"
+                  : "bg-red-600 shadow-red-600"
+              }`}
+              title={userProfile ? "AI Link Online" : "AI Link Offline"}
+            ></div>
+          </div>
+        </div>
       </div>
 
-      {/* User Directory */}
-      <div className="retro-border-outset p-4">
-        <h3 className="font-bold text-[#000080] border-b border-gray-400 mb-2 flex items-center gap-2">
+      {/* Top Contributors */}
+      <div className="retro-border-outset p-4 bg-[#c0c0c0]">
+        <h3 className="font-bold text-[#000080] border-b border-gray-400 mb-2 flex items-center gap-2 text-sm">
           <User size={16} />
           TOP CONTRIBUTORS
         </h3>
         <ul className="text-sm font-mono space-y-1">
-          {topContributors.length > 0 ? (
-            topContributors.map((contributor: any, index: number) => (
+          {!isLoading && topContributors.length > 0 ? (
+            topContributors.map((contributor, index) => (
               <li key={contributor.id}>
                 <Link
                   to={`/profile/${contributor.id}`}
-                  className="flex items-center justify-between hover:bg-blue-100 p-1 block"
+                  className="flex items-center justify-between hover:bg-[#000080] hover:text-white p-1 transition-colors"
                 >
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-2 h-2 rounded-full"
+                      className="w-2 h-2"
                       style={{
                         backgroundColor:
                           index === 0
@@ -118,48 +169,48 @@ export function Sidebar() {
                                 : "#008000",
                       }}
                     ></div>
-                    <span>{contributor.username}</span>
+                    <span className="truncate w-32">
+                      {contributor.username}
+                    </span>
                   </div>
-                  <span className="text-xs text-gray-500">
-                    {contributor.postCount}
+                  <span className="text-xs opacity-70">
+                    [{contributor.postCount}]
                   </span>
                 </Link>
               </li>
             ))
           ) : (
-            <li className="text-xs text-gray-500 p-1">No contributors yet</li>
+            <li className="text-xs text-gray-500 p-1">
+              {isLoading ? "LOADING..." : "No data available."}
+            </li>
           )}
         </ul>
       </div>
 
-      {/* File Manager (Quick Links) */}
-      <div className="retro-border-outset p-4">
-        <h3 className="font-bold text-[#000080] border-b border-gray-400 mb-2 flex items-center gap-2">
+      {/* Quick Access */}
+      <div className="retro-border-outset p-4 bg-[#c0c0c0]">
+        <h3 className="font-bold text-[#000080] border-b border-gray-400 mb-2 flex items-center gap-2 text-sm">
           <FileText size={16} />
           QUICK ACCESS
         </h3>
         <div className="grid grid-cols-2 gap-2">
           <Link
             to="/new"
-            className="flex flex-col items-center justify-center p-2 hover:bg-blue-100 border border-transparent hover:border-blue-300"
+            className="flex flex-col items-center justify-center p-2 hover:bg-white border border-transparent active:border-inset group"
           >
-            <img
-              src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=64&h=64&fit=crop&q=80"
-              alt="New Post"
-              className="w-8 h-8 object-contain mb-1"
-            />
-            <span className="text-xs text-center">New Post</span>
+            <div className="w-8 h-8 mb-1 flex items-center justify-center bg-gray-200 group-hover:bg-blue-100 border border-gray-400">
+              📄
+            </div>
+            <span className="text-[10px] text-center font-bold">New Post</span>
           </Link>
           <Link
             to="/dashboard"
-            className="flex flex-col items-center justify-center p-2 hover:bg-blue-100 border border-transparent hover:border-blue-300"
+            className="flex flex-col items-center justify-center p-2 hover:bg-white border border-transparent active:border-inset group"
           >
-            <img
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=64&h=64&fit=crop&q=80"
-              alt="Dashboard"
-              className="w-8 h-8 object-contain mb-1"
-            />
-            <span className="text-xs text-center">Stats</span>
+            <div className="w-8 h-8 mb-1 flex items-center justify-center bg-gray-200 group-hover:bg-blue-100 border border-gray-400">
+              📊
+            </div>
+            <span className="text-[10px] text-center font-bold">Dashboard</span>
           </Link>
         </div>
       </div>

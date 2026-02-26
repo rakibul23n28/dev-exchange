@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { api } from "../../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import {
   Bold,
   Italic,
   Code,
   Image,
-  FileText,
   Palette,
   Eye,
   Edit,
+  FileText,
+  Save,
+  XCircle,
+  Type,
 } from "lucide-react";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 
@@ -24,6 +26,7 @@ export function PostEditor() {
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [loading, setLoading] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { user, token } = useAuth();
 
@@ -32,29 +35,20 @@ export function PostEditor() {
       const fetchPost = async () => {
         try {
           const response = await fetch(`http://localhost:5000/api/posts/${id}`);
-
-          if (!response.ok) {
-            throw new Error("Could not find post");
-          }
-
+          if (!response.ok) throw new Error("Could not find post");
           const post = await response.json();
-
-          // Populate your state
           setTitle(post.title);
           setContent(post.content);
           setTags(post.tags || []);
-          // Handle case if DB uses uppercase 'DRAFT' and state uses 'draft'
           setStatus(post.status.toLowerCase());
         } catch (err) {
           console.error("Failed to load post:", err);
-          // Optional: navigate back if the post doesn't exist
           navigate("/dashboard");
         }
       };
-
       fetchPost();
     }
-  }, [id]);
+  }, [id, navigate]);
 
   const handleAddTag = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && tagInput.trim()) {
@@ -66,12 +60,12 @@ export function PostEditor() {
     }
   };
 
-  const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const insertFormatting = (before: string, after: string = "") => {
-    const textarea = document.querySelector("textarea");
+    const textarea = textareaRef.current;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
@@ -86,16 +80,16 @@ export function PostEditor() {
       content.substring(end);
 
     setContent(newContent);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + before.length, end + before.length);
+    }, 0);
   };
 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!user) {
-      alert("You must be logged in to save posts.");
-      return;
-    }
-
+    if (!user) return alert("Log in required.");
     setLoading(true);
 
     try {
@@ -103,97 +97,114 @@ export function PostEditor() {
         title,
         content,
         tags,
-        // Prisma enums are usually uppercase: "DRAFT" or "PUBLISHED"
         status: status.toUpperCase(),
-        authorId: user.id, // REQUIRED by your Prisma model
+        authorId: user.id,
       };
 
-      let postId = id;
-
-      // 2. Use the full URL since your server is on port 5000
       const baseUrl = "http://localhost:5000/api/posts";
       const url = id ? `${baseUrl}/${id}` : baseUrl;
       const method = id ? "PATCH" : "POST";
 
       const response = await fetch(url, {
-        method: method,
+        method,
         headers: {
           "Content-Type": "application/json",
-          // 3. Pass the token from your AuthContext
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(postData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save post");
-      }
+      if (!response.ok) throw new Error("Failed to save post");
 
       const result = await response.json();
-      postId = id || result.id;
+      const postId = id || result.id;
 
-      setLoading(false);
-
-      // Retro-style delay for "System Processing" feel
       setTimeout(() => {
+        setLoading(false);
         navigate(status === "published" ? `/post/${postId}` : "/dashboard");
-      }, 500);
+      }, 800);
     } catch (error) {
-      console.error("Failed to publish:", error);
-      alert(error instanceof Error ? error.message : "Failed to publish post.");
       setLoading(false);
+      alert("System Error: Failed to commit to database.");
     }
   };
+  console.log(id);
 
-  return (
-    <div className="space-y-4">
-      {/* Editor Title */}
-      <div className="titlebar">
-        <div className="flex items-center gap-2">
-          <FileText size={20} />
-          <span>{id ? "EDIT POST" : "NEW POST"} - PUBLISHING SUITE v1.0</span>
+  //loading
+  if (!title && id !== undefined) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="retro-border-outset p-4 bg-[#C0C0C0] w-96">
+          <div className="bg-[#000080] text-white p-1 text-xs font-bold mb-4">
+            SYSTEM_CHECK.EXE
+          </div>
+          <pre className="text-xs font-mono mb-2">
+            LOADING CLOUD_RESOURCES...
+          </pre>
+          <div className="w-full bg-gray-300 h-4 border border-black overflow-hidden relative">
+            <div className="absolute inset-0 bg-blue-800 animate-[load_2s_infinite]"></div>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Toolbar */}
-      <div className="retro-border-outset bg-[#C0C0C0] p-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Text Formatting Group */}
-            <div className="flex items-center gap-1 border-r-2 border-gray-400 pr-2">
+  return (
+    <div className="max-w-5xl mx-auto pb-10">
+      <div className="retro-border-outset bg-[#C0C0C0] shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+        {/* Titlebar - Minimize removed */}
+        <div className="bg-[#000080] text-white p-1 flex items-center justify-between mx-1 mt-1">
+          <div className="flex items-center gap-2 px-1">
+            <FileText size={16} />
+            <span className="text-sm font-bold tracking-wide">
+              {id ? "EDIT_POST.EXE" : "NEW_POST.EXE"} - PUBLISHING_SUITE_V1
+            </span>
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={() => navigate(-1)}
+              className="bg-[#C0C0C0] text-black px-2 py-0.5 text-xs font-bold border border-white border-b-gray-600 border-r-gray-600 active:border-inset flex items-center justify-center"
+              style={{ minWidth: "20px" }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        {/* Toolbar with Font Size, Color, and Styles */}
+        <div className="p-2 border-b border-white shadow-[0_1px_0_rgba(128,128,128,1)] flex items-center justify-between bg-[#C0C0C0]">
+          <div className="flex items-center gap-1 flex-wrap">
+            {/* Formatting Group */}
+            <div className="flex gap-0.5 border-r border-gray-500 pr-2 mr-2">
               <button
                 type="button"
                 onClick={() => insertFormatting("**", "**")}
                 className="toolbar-icon"
                 title="Bold"
-                disabled={previewMode}
               >
-                <Bold size={16} />
+                <Bold size={14} />
               </button>
               <button
                 type="button"
                 onClick={() => insertFormatting("*", "*")}
                 className="toolbar-icon"
                 title="Italic"
-                disabled={previewMode}
               >
-                <Italic size={16} />
+                <Italic size={14} />
               </button>
               <button
                 type="button"
                 onClick={() => insertFormatting("`", "`")}
                 className="toolbar-icon"
                 title="Code"
-                disabled={previewMode}
               >
-                <Code size={16} />
+                <Code size={14} />
               </button>
             </div>
 
-            {/* Font Size Dropdown */}
-            <div className="flex items-center gap-1 border-r-2 border-gray-400 pr-2">
-              <label className="text-xs font-bold text-[#000080]">SIZE:</label>
+            {/* Font Size Group */}
+            <div className="flex items-center gap-2 border-r border-gray-500 pr-2 mr-2">
+              <Type size={14} className="text-[#000080]" />
               <select
                 onChange={(e) => {
                   if (e.target.value) {
@@ -204,26 +215,21 @@ export function PostEditor() {
                     e.target.value = "";
                   }
                 }}
-                className="retro-input text-xs px-1 py-0.5"
-                defaultValue=""
+                className="retro-input text-[10px] px-1 py-0 h-6 outline-none bg-white"
                 disabled={previewMode}
               >
-                <option value="">--</option>
-                <option value="10">10px</option>
-                <option value="12">12px</option>
-                <option value="14">14px</option>
-                <option value="16">16px</option>
-                <option value="18">18px</option>
-                <option value="20">20px</option>
-                <option value="22">22px</option>
-                <option value="24">24px</option>
+                <option value="">Size</option>
+                {[10, 12, 14, 16, 18, 20, 22, 24].map((size) => (
+                  <option key={size} value={size}>
+                    {size}px
+                  </option>
+                ))}
               </select>
             </div>
 
-            {/* Color Picker */}
-            <div className="flex items-center gap-1 border-r-2 border-gray-400 pr-2">
-              <Palette size={16} className="text-[#000080]" />
-              <label className="text-xs font-bold text-[#000080]">COLOR:</label>
+            {/* Color Picker Group */}
+            <div className="flex items-center gap-2 border-r border-gray-500 pr-2 mr-2">
+              <Palette size={14} className="text-[#000080]" />
               <select
                 onChange={(e) => {
                   if (e.target.value) {
@@ -234,14 +240,11 @@ export function PostEditor() {
                     e.target.value = "";
                   }
                 }}
-                className="retro-input text-xs px-1 py-0.5"
-                defaultValue=""
+                className="retro-input text-[10px] px-1 py-0 h-6 outline-none bg-white"
                 disabled={previewMode}
               >
-                <option value="">--</option>
+                <option value="">Color</option>
                 <option value="#000000">Black</option>
-                <option value="#000080">Navy</option>
-                <option value="#FF4500">Orange</option>
                 <option value="#FF0000">Red</option>
                 <option value="#008000">Green</option>
                 <option value="#0000FF">Blue</option>
@@ -250,185 +253,197 @@ export function PostEditor() {
               </select>
             </div>
 
-            {/* Image */}
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => insertFormatting("![alt](", ")")}
-                className="toolbar-icon"
-                title="Insert Image"
-                disabled={previewMode}
-              >
-                <Image size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 border-l-2 border-white pl-2">
             <button
               type="button"
-              onClick={() => setPreviewMode(!previewMode)}
-              className={`toolbar-icon flex items-center gap-1 px-2 w-auto ${previewMode ? "bg-gray-400" : ""}`}
-              title={
-                previewMode ? "Switch to Edit Mode" : "Switch to Preview Mode"
-              }
+              onClick={() => insertFormatting("![alt](", ")")}
+              className="toolbar-icon"
+              title="Image"
+              disabled={previewMode}
             >
-              {previewMode ? <Edit size={16} /> : <Eye size={16} />}
-              <span className="text-xs font-bold">
-                {previewMode ? "EDIT" : "PREVIEW"}
-              </span>
+              <Image size={14} />
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Main Form */}
-      <form
-        onSubmit={handlePublish}
-        className="retro-border-outset p-4 bg-[#C0C0C0]"
-      >
-        <div className="grid gap-4 grid-cols-4">
-          {/* Main Editor Area */}
-          <div className="col-span-3">
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-2 font-bold text-[#000080]">
-                  SUBJECT LINE:
+          <button
+            type="button"
+            onClick={() => setPreviewMode(!previewMode)}
+            className={`flex items-center gap-2 px-3 py-1 text-xs font-bold border-2 ${previewMode ? "bg-gray-400 border-inset" : "border-outset"}`}
+          >
+            {previewMode ? <Edit size={14} /> : <Eye size={14} />}
+            {previewMode ? "EDITOR" : "PREVIEW"}
+          </button>
+        </div>
+
+        {/* Main Workspace */}
+        <form onSubmit={handlePublish} className="p-4 bg-[#D4D0C8]">
+          <div className="grid grid-cols-12 gap-6">
+            {/* Left: Editor Content */}
+            <div className="col-span-12 lg:col-span-8 space-y-4">
+              <div className="bg-white p-4 retro-border-inset">
+                <label className="block text-xs font-bold text-[#000080] mb-1 tracking-tighter">
+                  SUBJECT_LINE:
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="retro-input w-full text-lg"
-                  placeholder="Enter post title..."
+                  className="w-full text-lg font-mono outline-none border-b border-gray-200 focus:border-blue-800 pb-1"
+                  placeholder="Untitled Document"
                   required
                   disabled={previewMode}
                 />
               </div>
 
-              <div>
-                <label className="block mb-2 font-bold text-[#000080]">
-                  DOCUMENT BODY:
-                </label>
+              <div className="bg-white retro-border-inset min-h-[500px]">
                 {previewMode ? (
-                  <div className="retro-border-inset bg-white p-4 h-[500px] overflow-y-auto">
+                  <div className="p-6 h-[500px] overflow-y-auto prose max-w-none">
                     <MarkdownRenderer content={content} />
                   </div>
                 ) : (
-                  <div className="retro-border-inset bg-white p-2">
-                    <textarea
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      className="w-full border-none outline-none font-mono text-sm"
-                      rows={24}
-                      style={{ resize: "vertical", background: "white" }}
-                      placeholder="Enter your content here..."
-                      required
-                    />
-                  </div>
+                  <textarea
+                    ref={textareaRef}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    className="w-full h-[500px] p-4 outline-none font-mono text-sm resize-none leading-relaxed"
+                    placeholder="Start typing your transmission..."
+                    required
+                  />
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Metadata Sidebar */}
-          <div className="col-span-1 space-y-4">
-            <div className="retro-border-outset p-3 bg-white">
-              <h3 className="font-bold text-sm text-[#000080] mb-2">
-                METADATA
-              </h3>
+            {/* Right: Sidebar */}
+            <div className="col-span-12 lg:col-span-4 space-y-4">
+              <div className="retro-border-outset p-4 bg-[#C0C0C0] sticky top-4">
+                <h3 className="text-xs font-bold bg-[#808080] text-white px-2 py-0.5 mb-4 tracking-widest">
+                  PROPERTIES
+                </h3>
 
-              <div className="mb-3">
-                <label className="block text-xs mb-1 font-bold">STATUS:</label>
-                <select
-                  value={status}
-                  onChange={(e) =>
-                    setStatus(e.target.value as "draft" | "published")
-                  }
-                  className="retro-input w-full text-xs"
-                  disabled={previewMode}
-                >
-                  <option value="draft">DRAFT</option>
-                  <option value="published">PUBLISHED</option>
-                </select>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold mb-1">
+                      PUBLICATION_STATUS:
+                    </label>
+                    <select
+                      value={status}
+                      onChange={(e) =>
+                        setStatus(e.target.value as "draft" | "published")
+                      }
+                      className="retro-input w-full text-xs font-mono py-1"
+                      disabled={previewMode}
+                    >
+                      <option value="draft">DRAFT_MODE</option>
+                      <option value="published">LIVE_PUBLISH</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold mb-1">
+                      TAG_RECORDS:
+                    </label>
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={handleAddTag}
+                      className="retro-input w-full text-xs py-1 mb-2"
+                      placeholder="Type & press Enter"
+                      disabled={previewMode}
+                    />
+                    <div className="flex flex-wrap gap-1">
+                      {tags.map((tag, i) => (
+                        <span
+                          key={i}
+                          className="flex items-center gap-1 bg-[#FFFF00] border border-black px-1.5 py-0.5 text-[10px] font-bold"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTag(tag)}
+                            className="hover:text-red-600"
+                            disabled={previewMode}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 space-y-2">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full retro-button py-2 flex items-center justify-center gap-2 font-bold text-sm bg-green-100"
+                    >
+                      <Save size={16} />
+                      {loading
+                        ? "SAVING..."
+                        : id
+                          ? "UPDATE_ENTRY"
+                          : "COMMIT_PUBLISH"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(-1)}
+                      className="w-full retro-button py-2 flex items-center justify-center gap-2 font-bold text-sm"
+                    >
+                      <XCircle size={16} />
+                      ABORT_CHANGES
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs mb-1 font-bold">
-                  CATEGORY TAGS:
-                </label>
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleAddTag}
-                  className="retro-input w-full text-xs mb-2"
-                  placeholder="Press Enter to add"
-                  disabled={previewMode}
-                />
-                <div className="space-y-1">
-                  {tags.map((tag, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between bg-[#FFFF00] px-2 py-1 text-xs border border-black"
-                    >
-                      <span>{tag}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag)}
-                        className="text-[#FF0000] font-bold"
-                        disabled={previewMode}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              <div className="retro-border-inset bg-[#FFFFE1] p-3 text-[10px] font-mono text-gray-700">
+                <strong>SYSTEM_TIP:</strong>
+                <br />
+                Apply font sizes or colors to specific text by highlighting it
+                before selecting a property from the toolbar.
               </div>
             </div>
           </div>
+        </form>
+
+        {/* Status Bar */}
+        <div className="bg-[#C0C0C0] border-t border-white p-1 flex justify-between text-[10px] font-mono mx-1 mb-1">
+          <div className="flex gap-4 px-2">
+            <span className="border-r border-gray-400 pr-4">
+              CHARS: {content.length}
+            </span>
+            <span className="border-r border-gray-400 pr-4">
+              USER: {user?.username?.toUpperCase() || "GUEST"}
+            </span>
+          </div>
+          <div className="px-2">READY</div>
         </div>
+      </div>
 
-        {/* Publish Button */}
-        <div className="mt-4 flex items-center gap-4">
-          <button
-            type="submit"
-            className="retro-button px-8 py-2 text-lg"
-            disabled={loading}
-          >
-            {loading ? "PUBLISHING..." : id ? "UPDATE" : "PUBLISH"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="retro-button px-6 py-2"
-            disabled={loading}
-          >
-            CANCEL
-          </button>
-        </div>
-      </form>
-
-      {/* Publishing Dialog */}
+      {/* Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="win-dialog p-2" style={{ width: "400px" }}>
-            <div className="titlebar mb-2">PUBLISHING DOCUMENT</div>
-            <div className="p-4 bg-white">
-              <p className="mb-4 font-mono text-sm">
-                Handshaking with server...
-              </p>
-              <div className="progress-bar mb-2">
-                <div className="progress-bar-fill" style={{ width: "100%" }} />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]">
+          <div className="retro-border-outset p-2 bg-[#C0C0C0] w-80 shadow-2xl">
+            <div className="bg-[#000080] text-white text-xs p-1 font-bold italic">
+              WRITING_TO_DISK...
+            </div>
+            <div className="p-6 bg-white flex flex-col items-center">
+              <div className="w-full bg-gray-200 h-4 border border-black mb-2 overflow-hidden relative">
+                <div className="absolute inset-0 bg-blue-800 animate-[load_1.5s_infinite]"></div>
               </div>
-              <p className="text-xs font-mono text-gray-600 text-center">
-                100% complete
-              </p>
+              <span className="text-[10px] font-mono">
+                COMMITTING CHANGES TO DATABASE
+              </span>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes load {
+          0% { left: -100%; width: 30%; }
+          100% { left: 100%; width: 30%; }
+        }
+      `}</style>
     </div>
   );
 }

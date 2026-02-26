@@ -5,8 +5,15 @@ import apiRoutes from "./routes/apiRoutes";
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json());
+
+app.set("trust proxy", true);
 
 // Main API Route
 app.use("/api", apiRoutes);

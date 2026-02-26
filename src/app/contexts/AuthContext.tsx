@@ -41,11 +41,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("auth_user", JSON.stringify(userData));
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("auth_user");
+  const logout = async () => {
+    try {
+      // 1. Tell the server to clear the HttpOnly cookie
+      await fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        headers: {
+          // Send the token in headers if your middleware looks there
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (error) {
+      console.error("Server logout failed:", error);
+    } finally {
+      // 2. Always clear local state even if the network fails
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+    }
   };
 
   return (
