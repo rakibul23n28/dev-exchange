@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Terminal, Lock, User, ShieldAlert, Cpu, X, Minus } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { logAccessSession } from "../../lib/localStorage";
 
 export function Login() {
   const navigate = useNavigate();
@@ -33,7 +32,6 @@ export function Login() {
         setError(resultJson.error);
       } else if (resultJson.success) {
         login(resultJson.user, resultJson.token);
-        logAccessSession(resultJson.user.id);
         navigate("/");
       }
     } catch (err) {

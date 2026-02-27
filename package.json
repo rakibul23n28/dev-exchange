@@ -90,6 +90,8 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/pg": "^8.16.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@types/useragent": "^2.3.4",
     "@vitejs/plugin-react": "4.7.0",
     "nodemon": "^3.1.14",

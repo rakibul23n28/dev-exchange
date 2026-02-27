@@ -65,7 +65,7 @@ export function Dashboard() {
 
       try {
         const [postsRes, sessionsRes, repRes] = await Promise.all([
-          fetch(`${API_BASE}/posts/user/${user.id}`, { headers }),
+          fetch(`${API_BASE}/posts/user/${user.id}`),
           fetch(`${API_BASE}/sessions/${user.id}`, { headers }),
           fetch(`${API_BASE}/reputation/${user.id}`, { headers }),
         ]);

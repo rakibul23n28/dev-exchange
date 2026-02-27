@@ -10,6 +10,9 @@ import { systemController } from "../controllers/systemController";
 
 const router = Router();
 
+//rss/:userId
+router.get("/rss/:userId", postController.getRssFeed);
+
 //systemController
 router.get("/system/stats", systemController.getStats);
 router.get("/system/contributors", systemController.getTopContributors);
@@ -38,6 +41,7 @@ router.patch("/posts/:id/view", authenticate, postController.viewPost);
 // post Comments
 router.get("/posts/:postId/comments", commentController.getComments);
 router.post("/posts/:postId/comments", commentController.createComment);
+
 //comment votes
 router.get(
   "/posts/:postId/vote-status",
@@ -47,6 +51,18 @@ router.get(
 
 // User & Stats
 router.get("/profile/me", authenticate, userController.getCurrentUserProfile);
+router.get("/profile/info/:id", userController.getCurrentUserProfileInfo);
+router.put(
+  "/profile/info/:id",
+  authenticate,
+  userController.updateCurrentUserProfileInfo,
+);
+router.get("/profile/:id/reviews", userController.getProfileReviews);
+router.post(
+  "/profile/:id/reviews",
+  authenticate,
+  userController.createProfileReview,
+);
 router.get("/profile/:id", userController.getProfile);
 router.patch("/profile/:id", userController.updateProfile);
 router.get("/stats", userController.getStats);

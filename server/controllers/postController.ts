@@ -16,6 +16,68 @@ const PostSchema = z.object({
 });
 
 export const postController = {
+  getRssFeed: async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params as { userId: string };
+
+      // 1. Fetch User Profile
+      // Replace 'db.user' with your actual database logic
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        return res.status(404).send("User not found");
+      }
+
+      // 2. Fetch User's Published Posts
+      const posts = await prisma.post.findMany({
+        where: {
+          authorId: userId,
+          status: "PUBLISHED", // Only show public posts
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      // 3. Generate RSS XML String
+      const siteUrl = "http://localhost:5173"; // Your Frontend
+      const serverUrl = "http://localhost:5000/api"; // Your Backend
+
+      const postItems = posts
+        .map(
+          (post: any) => `
+    <item>
+      <title><![CDATA[${post.title}]]></title>
+      <link>${siteUrl}/post/${post.id}</link>
+      <guid isPermaLink="false">${post.id}</guid>
+      <pubDate>${new Date(post.createdAt).toUTCString()}</pubDate>
+      <description><![CDATA[${post.content?.substring(0, 300)}...]]></description>
+      <author>${user.username}</author>
+    </item>`,
+        )
+        .join("");
+
+      const rssXml = `<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>${user.username}'s Personnel Feed</title>
+  <link>${siteUrl}/profile/${userId}</link>
+  <description>${user.bio || "Data stream for " + user.username}</description>
+  <language>en-us</language>
+  <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+  <atom:link href="${serverUrl}/rss/${userId}" rel="self" type="application/rss+xml" />
+  ${postItems}
+</channel>
+</rss>`;
+
+      // 4. Set Headers and Send
+      res.header("Content-Type", "application/xml");
+      return res.status(200).send(rssXml);
+    } catch (error) {
+      console.error("RSS Generation Error:", error);
+      return res.status(500).send("Internal Server Error");
+    }
+  },
   getPosts: async (req: Request, res: Response) => {
     const {
       search,

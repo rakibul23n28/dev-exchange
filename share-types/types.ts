@@ -4,7 +4,7 @@ export interface Post {
   author_name: string;
   title: string;
   content: string;
-  status: "published" | "draft";
+  status: "PUBLISHED" | "DRAFT";
   tags: string[];
   created_at: string;
   updated_at: string;
@@ -31,7 +31,7 @@ export interface Profile {
   username: string;
   bio: string;
   specialization: string;
-  join_date: string;
+  joinDate: string;
   reputation_score: number;
   email: string;
   profile_image_url?: string;

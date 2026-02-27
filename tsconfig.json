@@ -1,9 +1,6 @@
 {
   "compilerOptions": {
-    /* To silence the specific warning if you wanted to keep it, 
-       but it's better to just fix the config as shown below */
     "ignoreDeprecations": "5.0",
-
     "target": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "module": "ESNext",
@@ -19,13 +16,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
 
-    /* Modern Path Mapping (Notice the ./ prefix and no baseUrl) */
+    /* 1. Add this to fix the CSS and SVG import errors */
+    "types": ["vite/client"],
+
     "paths": {
       "@/*": ["./src/*"],
       "@db": ["./server/generated/prisma"]
     }
   },
-  "include": ["src", "server", "prisma"],
-
+  "include": ["src", "server", "prisma", "vite.config.ts"],
   "exclude": ["node_modules"]
 }

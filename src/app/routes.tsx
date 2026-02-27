@@ -43,7 +43,7 @@ export const router = createBrowserRouter([
       },
       { path: "edit/:id", Component: PostEditor },
       { path: "profile/:id", Component: Profile },
-      { path: "rss/:id", Component: RSSFeed },
+      { path: "profile/rss/:id", Component: RSSFeed },
       {
         path: "dashboard",
         element: (

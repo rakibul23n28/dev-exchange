@@ -8,6 +8,8 @@ node_modules
 # Prisma generated client
 server/generated/prisma/
 
+prisma/migrations
+
 
 # Build outputs
 dist/
