@@ -42,7 +42,6 @@ export function Home() {
   const LIMIT = 10;
 
   const debouncedSearch = useDebounce(searchQuery, 500);
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
   const extractFirstImage = (content: string): string | null => {
     const markdownImageRegex = /!\[.*?\]\((.*?)\)/;
@@ -53,19 +52,30 @@ export function Home() {
   const fetchPosts = useCallback(
     async (search: string, page: number) => {
       setIsSearching(true);
+      setLoading(true); // Ensure loading state starts
       try {
-        const url = new URL(`${API_BASE}/posts`);
-        if (search) url.searchParams.append("search", search);
-        url.searchParams.append("page", page.toString());
-        url.searchParams.append("limit", LIMIT.toString());
+        // 1. Build the query parameters
+        const params = new URLSearchParams();
+        if (search) params.append("search", search);
+        params.append("page", page.toString());
+        params.append("limit", LIMIT.toString());
 
-        const response = await fetch(url.toString());
+        // 2. Use the environment variable or default to /api
+        // VITE_API_BASE_URL is now "/api"
+        const base = import.meta.env.VITE_API_BASE_URL || "/api";
+        const endpoint = `${base}/posts?${params.toString()}`;
+
+        // 3. Simple fetch (relative URLs work perfectly in browsers)
+        const response = await fetch(endpoint);
+
         if (!response.ok) throw new Error("Network response was not ok");
 
         const data = await response.json();
-        setPosts(data.posts);
-        setTotalPages(data.meta.totalPages);
-        setTotalRecords(data.meta.totalCount);
+
+        // Ensure data structure matches your backend response
+        setPosts(data.posts || []);
+        setTotalPages(data.meta?.totalPages || 1);
+        setTotalRecords(data.meta?.totalCount || 0);
       } catch (error) {
         console.error("Failed to fetch posts:", error);
       } finally {
@@ -73,7 +83,8 @@ export function Home() {
         setIsSearching(false);
       }
     },
-    [API_BASE],
+
+    [LIMIT],
   );
 
   useEffect(() => {
