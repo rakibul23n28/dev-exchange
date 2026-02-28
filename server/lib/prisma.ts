@@ -1,4 +1,4 @@
-import { PrismaClient } from "@db"; // Ensure this points to your generated client
+import { PrismaClient } from "../generated/prisma/index.js"; // Ensure this points to your generated client
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
