@@ -40,7 +40,7 @@ export function Sidebar() {
         setIsLoading(true);
 
         // Prioritize the token from Context, fallback to LocalStorage
-        const activeToken = token || localStorage.getItem("token");
+        const activeToken = token || localStorage.getItem("auth_token");
 
         // Prepare fetch promises
         const fetchContributors = apiFetch(`/system/contributors`);

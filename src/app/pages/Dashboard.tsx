@@ -174,7 +174,7 @@ export function Dashboard() {
             <Rss size={14} className="text-orange-600" />
             <span>RSS: /rss/{user.id.slice(0, 8)}...</span>
             <Link
-              to={`/rss/${user.id}`}
+              to={`/profile/rss/${user.id}`}
               className="underline text-blue-800 ml-2"
             >
               VIEW
