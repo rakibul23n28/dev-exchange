@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { prisma } from "../lib/prisma";
-import { AuthRequest } from "../middleware/auth";
+import { prisma } from "../lib/prisma.js";
+import { AuthRequest } from "../middleware/auth.js";
 
 export const userController = {
   getCurrentUserProfile: async (req: AuthRequest, res: Response) => {

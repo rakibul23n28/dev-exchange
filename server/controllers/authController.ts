@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { prisma } from "../lib/prisma";
+import { prisma } from "../lib/prisma.js";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { sessionController } from "./sessionController";
+import { sessionController } from "./sessionController.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key";
 

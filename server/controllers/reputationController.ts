@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 // IMPORT the existing instance, DO NOT create a new one here
-import prisma from "../lib/prisma"; // Adjust this path to where your Prisma setup file is
+import prisma from "../lib/prisma.js"; // Adjust this path to where your Prisma setup file is
 
 export const reputationController = {
   getLogs: async (req: Request, res: Response) => {
