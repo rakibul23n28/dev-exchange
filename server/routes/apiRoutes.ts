@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { postController } from "../controllers/postController";
-import { commentController } from "../controllers/commentController";
-import { userController } from "../controllers/userController";
-import { authController } from "../controllers/authController";
-import { authenticate } from "../middleware/auth";
-import { sessionController } from "../controllers/sessionController";
-import { reputationController } from "../controllers/reputationController";
-import { systemController } from "../controllers/systemController";
+import { postController } from "../controllers/postController.js";
+import { commentController } from "../controllers/commentController.js";
+import { userController } from "../controllers/userController.js";
+import { authController } from "../controllers/authController.js";
+import { authenticate } from "../middleware/auth.js";
+import { sessionController } from "../controllers/sessionController.js";
+import { reputationController } from "../controllers/reputationController.js";
+import { systemController } from "../controllers/systemController.js";
 
 const router = Router();
 
