@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "../contexts/AuthContext";
 import { format } from "date-fns";
+import { apiFetch } from "../../lib/api";
 import {
   BarChart3,
   FileText,
-  Edit,
-  Trash2,
   Award,
-  TrendingUp,
   Download,
   Rss,
   Terminal,
@@ -51,8 +49,6 @@ export function Dashboard() {
   const [reputationLog, setReputationLog] = useState<ReputationLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = "http://localhost:5000/api";
-
   useEffect(() => {
     if (!user) return;
 
@@ -65,9 +61,9 @@ export function Dashboard() {
 
       try {
         const [postsRes, sessionsRes, repRes] = await Promise.all([
-          fetch(`${API_BASE}/posts/user/${user.id}`),
-          fetch(`${API_BASE}/sessions/${user.id}`, { headers }),
-          fetch(`${API_BASE}/reputation/${user.id}`, { headers }),
+          apiFetch(`/posts/user/${user.id}`),
+          apiFetch(`/sessions/${user.id}`, { headers }),
+          apiFetch(`/reputation/${user.id}`, { headers }),
         ]);
 
         if (postsRes.ok) setPosts(await postsRes.json());
@@ -87,7 +83,7 @@ export function Dashboard() {
     if (!confirm("Are you sure you want to delete this post?")) return;
 
     try {
-      const res = await fetch(`${API_BASE}/posts/${id}`, {
+      const res = await apiFetch(`/posts/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

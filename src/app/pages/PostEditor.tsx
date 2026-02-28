@@ -15,6 +15,7 @@ import {
   Type,
 } from "lucide-react";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
+import { apiFetch } from "../../lib/api";
 
 export function PostEditor() {
   const { id } = useParams();
@@ -34,7 +35,7 @@ export function PostEditor() {
     if (id) {
       const fetchPost = async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/posts/${id}`);
+          const response = await apiFetch(`/posts/${id}`);
           if (!response.ok) throw new Error("Could not find post");
           const post = await response.json();
           setTitle(post.title);
@@ -101,11 +102,11 @@ export function PostEditor() {
         authorId: user.id,
       };
 
-      const baseUrl = "http://localhost:5000/api/posts";
+      const baseUrl = "/posts";
       const url = id ? `${baseUrl}/${id}` : baseUrl;
       const method = id ? "PATCH" : "POST";
 
-      const response = await fetch(url, {
+      const response = await apiFetch(`${url}`, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -128,7 +129,6 @@ export function PostEditor() {
       alert("System Error: Failed to commit to database.");
     }
   };
-  console.log(id);
 
   //loading
   if (!title && id !== undefined) {

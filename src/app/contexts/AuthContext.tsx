@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { apiFetch } from "../../lib/api";
 
 interface User {
   id: string;
@@ -44,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       // 1. Tell the server to clear the HttpOnly cookie
-      await fetch("http://localhost:5000/api/auth/logout", {
+      await apiFetch("/auth/logout", {
         method: "POST",
         headers: {
           // Send the token in headers if your middleware looks there

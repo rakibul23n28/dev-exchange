@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Terminal, LogOut, User as UserIcon, Activity } from "lucide-react";
 import { useAuth } from "../../app/contexts/AuthContext";
+import { apiFetch } from "../../lib/api";
 
 export function Header() {
   const navigate = useNavigate();
@@ -9,11 +10,9 @@ export function Header() {
   const [marqueeText, setMarqueeText] = useState("*** SYSTEM ONLINE ***");
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  const API_BASE = "http://localhost:5000/api";
-
   const updateMarqueeData = async () => {
     try {
-      const response = await fetch(`${API_BASE}/system/stats`);
+      const response = await apiFetch(`/system/stats`);
       if (!response.ok) throw new Error();
       const stats = await response.json();
       const items = [

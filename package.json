@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && vite build",
     "dev": "vite",
     "server": "nodemon --exec tsx ./server/server.ts",
     "start": "tsx ./server/server.ts",
@@ -92,6 +93,7 @@
     "@types/pg": "^8.16.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@types/useragent": "^2.3.4",
     "@vitejs/plugin-react": "4.7.0",
     "nodemon": "^3.1.14",
@@ -101,8 +103,8 @@
     "vite": "6.3.5"
   },
   "peerDependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "peerDependenciesMeta": {
     "react": {

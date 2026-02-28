@@ -42,7 +42,7 @@ export function Home() {
   const LIMIT = 10;
 
   const debouncedSearch = useDebounce(searchQuery, 500);
-  const API_BASE = "http://localhost:5000/api";
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
   const extractFirstImage = (content: string): string | null => {
     const markdownImageRegex = /!\[.*?\]\((.*?)\)/;

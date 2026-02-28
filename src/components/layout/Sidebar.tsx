@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router";
 import { User, Activity, FileText, Cpu } from "lucide-react";
 import { useAuth } from "../../app/contexts/AuthContext";
+import { apiFetch } from "../../lib/api";
 
 interface Contributor {
   id: string;
@@ -14,8 +15,6 @@ interface UserData {
   reputationScore: number;
   specialization: string | null;
 }
-
-const API_BASE = "http://localhost:5000/api";
 
 export function Sidebar() {
   const [topContributors, setTopContributors] = useState<Contributor[]>([]);
@@ -44,11 +43,11 @@ export function Sidebar() {
         const activeToken = token || localStorage.getItem("token");
 
         // Prepare fetch promises
-        const fetchContributors = fetch(`${API_BASE}/system/contributors`);
+        const fetchContributors = apiFetch(`/system/contributors`);
 
         // Only fetch profile if a token exists
         const fetchProfile = activeToken
-          ? fetch(`${API_BASE}/profile/me`, {
+          ? apiFetch(`/profile/me`, {
               method: "GET",
               headers: {
                 Authorization: `Bearer ${activeToken}`,

@@ -11,6 +11,7 @@ import {
   Code,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { apiFetch } from "../../lib/api";
 
 export function RSSFeed() {
   const { id } = useParams<{ id: string }>();
@@ -24,8 +25,8 @@ export function RSSFeed() {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"preview" | "xml">("preview");
 
-  const BASE_URL = "http://localhost:5000/api";
-  const feedUrl = `${BASE_URL}/rss/${id}`;
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+  const feedUrl = `${API_BASE}/rss/${id}`;
 
   const generateRSSString = (data: any) => {
     const lastBuildDate = new Date().toUTCString();
@@ -64,7 +65,7 @@ export function RSSFeed() {
       if (!id) return;
       try {
         setLoading(true);
-        const response = await fetch(`${BASE_URL}/profile/${id}`, {
+        const response = await apiFetch(`/profile/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",

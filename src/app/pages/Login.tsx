@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Terminal, Lock, User, ShieldAlert, Cpu, X, Minus } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { apiFetch } from "../../lib/api";
 
 export function Login() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      const result = await fetch("http://localhost:5000/api/auth/login", {
+      const result = await apiFetch("/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

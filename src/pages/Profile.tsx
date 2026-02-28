@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router";
 import { format, isValid, parseISO } from "date-fns";
 import { useAuth } from "../app/contexts/AuthContext";
 import {
-  User,
   Mail,
   Calendar,
   Briefcase,
@@ -24,9 +23,9 @@ import {
   ShieldCheck,
   Hash,
   Terminal,
-  Image,
   Rss,
 } from "lucide-react";
+import { apiFetch } from "../lib/api";
 
 interface Post {
   id: string;
@@ -80,7 +79,6 @@ export default function Profile() {
   });
 
   const isOwnProfile = user?.id === id;
-  const BASE_URL = "http://localhost:5000/api";
 
   const safeFormat = (
     dateStr: string | undefined | null,
@@ -94,7 +92,7 @@ export default function Profile() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${BASE_URL}/profile/info/${id}`, {
+      const response = await apiFetch(`/profile/info/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -127,7 +125,7 @@ export default function Profile() {
 
   const handleSaveProfile = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/profile/info/${id}`, {
+      const response = await apiFetch(`/profile/info/${id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -151,7 +149,7 @@ export default function Profile() {
     if (!user) return alert("Login required.");
 
     try {
-      const response = await fetch(`${BASE_URL}/profile/${id}/reviews`, {
+      const response = await apiFetch(`/profile/${id}/reviews`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

@@ -3,12 +3,8 @@ import { Command } from "cmdk";
 import {
   Search,
   Calculator,
-  Calendar,
-  CreditCard,
   Settings,
   User,
-  Smile,
-  Code,
   FileText,
   Home,
   Terminal,
@@ -27,7 +23,6 @@ export function CommandPalette() {
     const parsedUser = user ? JSON.parse(user) : null;
 
     setCurrentUser(parsedUser);
-    console.log(parsedUser); // This will show the correct data immediately
   }, []);
 
   React.useEffect(() => {

@@ -13,8 +13,7 @@ import {
 } from "lucide-react";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { useAuth } from "../../app/contexts/AuthContext";
-
-const API_BASE = "http://localhost:5000/api";
+import { apiFetch } from "../../lib/api";
 
 export function PostView() {
   const { id } = useParams();
@@ -42,7 +41,7 @@ export function PostView() {
     viewedRef.current = true; // Set flag to prevent double-increment
 
     try {
-      await fetch(`${API_BASE}/posts/${id}/view`, {
+      await apiFetch(`/posts/${id}/view`, {
         method: "PATCH", // Using PATCH to update a single field
         headers: getHeaders(),
       });
@@ -54,20 +53,20 @@ export function PostView() {
   const fetchPostData = useCallback(async () => {
     if (!id) return;
     try {
-      const postRes = await fetch(`${API_BASE}/posts/${id}`);
+      const postRes = await apiFetch(`/posts/${id}`);
       if (postRes.ok) {
         const postData = await postRes.json();
         setPost(postData);
       }
 
-      const commentsRes = await fetch(`${API_BASE}/posts/${id}/comments`);
+      const commentsRes = await apiFetch(`/posts/${id}/comments`);
       if (commentsRes.ok) {
         const commentsData = await commentsRes.json();
         setComments(commentsData);
       }
 
       if (token) {
-        const voteRes = await fetch(`${API_BASE}/posts/${id}/vote-status`, {
+        const voteRes = await apiFetch(`/posts/${id}/vote-status`, {
           headers: getHeaders(),
         });
         if (voteRes.ok) {
@@ -95,7 +94,7 @@ export function PostView() {
     if (!id || !newComment.trim() || !user) return;
 
     try {
-      const response = await fetch(`${API_BASE}/posts/${id}/comments`, {
+      const response = await apiFetch(`/posts/${id}/comments`, {
         method: "POST",
         headers: getHeaders(),
         body: JSON.stringify({
@@ -132,7 +131,7 @@ export function PostView() {
 
     setIsVoting(true);
     try {
-      const response = await fetch(`${API_BASE}/posts/${id}/vote`, {
+      const response = await apiFetch(`/posts/${id}/vote`, {
         method: "POST",
         headers: getHeaders(),
         body: JSON.stringify({ type }),
